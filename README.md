@@ -3,27 +3,27 @@
 ## Download Data
 
 ```
-kaggle competitions download -c leash-BELKA
+$ kaggle competitions download -c leash-BELKA
 ```
 
 ## Preprocess Data
 
 ```
-> export PYTHONPATH=/path/to/repo
-> python run/prepare_data.py -m stage=train,test
+$ export PYTHONPATH=/path/to/repo
+$ python run/prepare_data.py -m stage=train,test
 ```
 
 ## Train
 
 ```
-> export PYTHONPATH=/path/to/repo
-> python run/train.py
+$ export PYTHONPATH=/path/to/repo
+$ python run/train.py
 ```
 
 
 ## Inference
 
 ```
-> export PYTHONPATH=/path/to/repo
-> python run/inference.py
+$ export PYTHONPATH=/path/to/repo
+$ python run/inference.py
 ```
