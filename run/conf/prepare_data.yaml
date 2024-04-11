@@ -1,0 +1,5 @@
+data_dir: /project/data/lb
+output_dir: /project/data/lb
+prefix: processed_
+stage: test
+n_rows: 30000000
