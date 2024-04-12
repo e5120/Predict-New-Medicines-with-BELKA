@@ -1,0 +1,3 @@
+name: local
+data_dir: /project/data/lb
+model_dir: /project/lb/output

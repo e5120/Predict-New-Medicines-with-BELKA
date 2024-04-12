@@ -1,0 +1,6 @@
+name: ReduceLROnPlateau
+params:
+  mode: min
+  factor: 0.1
+  patience: 10
+  min_lr: 1.0e-06
