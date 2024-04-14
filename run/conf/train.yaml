@@ -11,19 +11,18 @@ hydra:
 defaults:
   - _self_
   - dir: local
-  - dataset: ~
+  - dataset: lm_dataset
   - model: ~
   - optimizer: adam
   - scheduler: constant
 
+data_dir: /project/data/lb
 exp_name: dummy
 stage: train
 batch_size: 32
-n_folds: 5
-folds: [0]
 gpu_id: 0
 seed: 42
-num_workers: 2
+num_workers: 0
 logger: False
 
 trainer:
@@ -51,3 +50,10 @@ model_checkpoint:
   dirpath: True
   save_top_k: 1
   verbose: 1
+
+# train-val split
+bb1_frac: 0.1
+bb2_frac: 0.2
+bb3_frac: 0.2
+overwrite: False
+fraction: 0.01

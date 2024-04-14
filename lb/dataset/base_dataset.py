@@ -1,12 +1,16 @@
 from abc import abstractmethod
 
+import numpy as np
 from torch.utils.data import Dataset
 
 
-class HMSBaseDataset(Dataset):
-    def __init__(self, df, stage="train"):
+class LBBaseDataset(Dataset):
+    def __init__(self, df, bb1, bb2, bb3, stage="train"):
         assert stage in ["train", "val", "test"]
         self.df = df
+        self.bb1 = bb1
+        self.bb2 = bb2
+        self.bb3 = bb3
         self.stage = stage
 
     def __len__(self):
@@ -25,9 +29,9 @@ class HMSBaseDataset(Dataset):
 
     def _generate_label(self, index):
         if self.stage == "test":
-            return -1
+            return np.array([0, 0, 0])
         else:
-            return self.df[index, "binds"]
+            return self.df[index, ["BRD4", "HSA", "sEH"]].to_numpy()[0]
 
     def _post_process(self, data):
         return data
