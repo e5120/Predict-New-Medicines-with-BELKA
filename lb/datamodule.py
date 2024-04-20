@@ -17,10 +17,10 @@ class LBDataModule(L.LightningDataModule):
         self.data_dir = Path(cfg.dir.data_dir)
         self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.model.params["model_name"])
         # load dataset
+        self.bb1 = pl.read_parquet(Path(cfg.data_dir, "processed_bb1.parquet"))
+        self.bb2 = pl.read_parquet(Path(cfg.data_dir, "processed_bb2.parquet"))
+        self.bb3 = pl.read_parquet(Path(cfg.data_dir, "processed_bb3.parquet"))
         if cfg.stage == "train":
-            self.bb1 = pl.read_parquet(Path(cfg.data_dir, "processed_bb1.parquet"))
-            self.bb2 = pl.read_parquet(Path(cfg.data_dir, "processed_bb2.parquet"))
-            self.bb3 = pl.read_parquet(Path(cfg.data_dir, "processed_bb3.parquet"))
             df = pl.read_parquet(Path(cfg.data_dir, "processed_train.parquet"))
             self.trn_df, self.val_df, self.aux_df = lb_train_val_split(
                 df, self.bb1, self.bb2, self.bb3,

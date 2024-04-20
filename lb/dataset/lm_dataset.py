@@ -13,7 +13,7 @@ def tokenize(batch, tokenizer):
 class LMDataset(LBBaseDataset):
     def __init__(self, df, bb1, bb2, bb3, tokenizer, stage="train"):
         super().__init__(df, bb1, bb2, bb3, tokenizer, stage=stage)
-        df = df.select(["molecule_smiles", "BRD4", "HSA", "sEH"])
+        # df = df.select(["molecule_smiles", "BRD4", "HSA", "sEH"])
         df = (
             Dataset
             .from_pandas(df.to_pandas())
