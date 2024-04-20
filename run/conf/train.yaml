@@ -12,15 +12,14 @@ defaults:
   - _self_
   - dir: local
   - dataset: lm_dataset
-  - model: ~
+  - model: lm_model
   - optimizer: adam
   - scheduler: constant
 
 data_dir: /project/data/lb
 exp_name: dummy
 stage: train
-batch_size: 32
-gpu_id: 0
+batch_size: 128
 seed: 42
 num_workers: 0
 logger: False
@@ -33,8 +32,8 @@ trainer:
   precision: "16-mixed"
   gradient_clip_val: ~
   accumulate_grad_batches: 1
-  reload_dataloaders_every_n_epochs: 1
-  devices: 1
+  # reload_dataloaders_every_n_epochs: 1
+  devices: [0]
 
 # early stopping
 early_stopping:
@@ -57,3 +56,4 @@ bb2_frac: 0.2
 bb3_frac: 0.2
 overwrite: False
 fraction: 0.01
+val_fraction: 0.1

@@ -1,9 +1,9 @@
 from pathlib import Path
 
-import numpy as np
 import polars as pl
-from torch.utils.data import  DataLoader
 import lightning as L
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, DataCollatorWithPadding
 
 import lb.dataset
 from lb.utils import lb_train_val_split
@@ -15,7 +15,7 @@ class LBDataModule(L.LightningDataModule):
         assert cfg.stage in ["train", "test"]
         self.cfg = cfg
         self.data_dir = Path(cfg.dir.data_dir)
-        self.fold = 0
+        self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.model.params["model_name"])
         # load dataset
         if cfg.stage == "train":
             self.bb1 = pl.read_parquet(Path(cfg.data_dir, "processed_bb1.parquet"))
@@ -33,6 +33,8 @@ class LBDataModule(L.LightningDataModule):
             )
             if cfg.fraction < 1.0:
                self.trn_df = self.trn_df.sample(fraction=cfg.fraction)
+            if cfg.val_fraction < 1.0:
+               self.val_df = self.val_df.sample(fraction=cfg.val_fraction)
             print(f"# of train: {len(self.trn_df)}, # of val: {len(self.val_df)}")
         else:
             self.test_df = pl.read_parquet(Path(cfg.data_dir, "processed_test.parquet"))
@@ -54,12 +56,14 @@ class LBDataModule(L.LightningDataModule):
             self.bb1,
             self.bb2,
             self.bb3,
+            self.tokenizer,
             stage=stage,
             **self.cfg.dataset.params,
         )
         return dataset
 
-    def _generate_dataloader(self, dataset, stage):
+    def _generate_dataloader(self, stage):
+        dataset = self._generate_dataset(stage)
         if stage == "train":
             shuffle=True
             drop_last=True
@@ -73,19 +77,14 @@ class LBDataModule(L.LightningDataModule):
             shuffle=shuffle,
             drop_last=drop_last,
             pin_memory=True,
+            collate_fn=DataCollatorWithPadding(self.tokenizer),
         )
 
     def train_dataloader(self):
-        train_dataset = self._generate_dataset("train")
-        train_loader = self._generate_dataloader(train_dataset, "train")
-        return train_loader
+        return self._generate_dataloader("train")
 
     def val_dataloader(self):
-        val_dataset = self._generate_dataset("val")
-        val_loader = self._generate_dataloader(val_dataset, "val")
-        return val_loader
+        return self._generate_dataloader("val")
 
     def test_dataloader(self):
-        test_dataset = self._generate_dataset("test")
-        test_loader = self._generate_dataloader(test_dataset, "test")
-        return test_loader
+        return self._generate_dataloader("test")

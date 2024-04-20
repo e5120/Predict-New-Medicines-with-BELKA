@@ -1,5 +1,6 @@
 import torch.nn.functional as F
 import lightning as L
+from torchmetrics import AveragePrecision
 
 import lb.model
 import lb.optimizer
@@ -10,7 +11,8 @@ class LBModelModule(L.LightningModule):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.model = getattr(lb.model, cfg.model.name)(cfg.model.params)
+        self.model = getattr(lb.model, cfg.model.name)(**cfg.model.params)
+        self.map = AveragePrecision(task="binary")
 
     def forward(self, batch):
         return self.model(batch)
@@ -31,11 +33,16 @@ class LBModelModule(L.LightningModule):
         ret = self.calculate_loss(batch, batch_idx)
         loss = ret["loss"]
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        return {"val_loss": loss}
+        self.map.update(F.sigmoid(ret["logits"]), batch["labels"].long())
+
+    def on_validation_epoch_end(self):
+        val_map = self.map.compute()
+        self.log("val_map", val_map, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.map.reset()
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         logits = self.forward(batch)["logits"]
-        probs = F.sigmoid(logits, dim=1)
+        probs = F.sigmoid(logits)
         return probs
 
     def configure_optimizers(self):

@@ -1,0 +1,5 @@
+name: "LMModel"
+params: {
+  model_name: DeepChem/ChemBERTa-5M-MTR,
+  # model_name: DeepChem/ChemBERTa-5M-MLM,
+}
