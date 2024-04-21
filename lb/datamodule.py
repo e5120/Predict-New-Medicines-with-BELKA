@@ -15,7 +15,11 @@ class LBDataModule(L.LightningDataModule):
         assert cfg.stage in ["train", "test"]
         self.cfg = cfg
         self.data_dir = Path(cfg.dir.data_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.cfg.model.params["model_name"])
+        model_name = self.cfg.model.params["model_name"]
+        if model_name == "ibm/MoLFormer-XL-both-10pct":
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # load dataset
         self.bb1 = pl.read_parquet(Path(cfg.data_dir, "processed_bb1.parquet"))
         self.bb2 = pl.read_parquet(Path(cfg.data_dir, "processed_bb2.parquet"))
