@@ -5,8 +5,8 @@ from lb.model import BaseModel
 
 
 class LMModel(BaseModel):
-    def __init__(self, model_name):
-        super().__init__()
+    def __init__(self, model_name, pos_weight=[10]):
+        super().__init__(pos_weight=pos_weight)
         if model_name == "ibm/MoLFormer-XL-both-10pct":
             self.config = AutoConfig.from_pretrained(
                 model_name,

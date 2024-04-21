@@ -1,12 +1,16 @@
 from abc import abstractmethod
 
+import torch
 import torch.nn as nn
 
 
 class BaseModel(nn.Module):
-    def __init__(self):
+    def __init__(self, pos_weight=[10]):
         super().__init__()
-        self.loss_fn = nn.BCEWithLogitsLoss(reduction="mean")
+        self.loss_fn = nn.BCEWithLogitsLoss(
+            reduction="mean",
+            pos_weight=torch.Tensor(pos_weight),
+        )
 
     @abstractmethod
     def forward(self, batch):

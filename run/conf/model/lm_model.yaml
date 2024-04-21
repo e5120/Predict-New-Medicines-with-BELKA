@@ -1,5 +1,6 @@
 name: "LMModel"
 params: {
-  model_name: DeepChem/ChemBERTa-5M-MTR,
-  # model_name: DeepChem/ChemBERTa-5M-MLM,
+  model_name: DeepChem/ChemBERTa-5M-MTR,  # 5M|10M|77M, MTR|MLM
+  # model_name: ibm/MoLFormer-XL-both-10pct,
+  pos_weight: [10],
 }
