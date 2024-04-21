@@ -5,6 +5,7 @@ from torchmetrics import AveragePrecision
 import lb.model
 import lb.optimizer
 import lb.scheduler
+from lb.utils import PROTEIN_NAMES
 
 
 class LBModelModule(L.LightningModule):
@@ -12,7 +13,10 @@ class LBModelModule(L.LightningModule):
         super().__init__()
         self.cfg = cfg
         self.model = getattr(lb.model, cfg.model.name)(**cfg.model.params)
-        self.map = AveragePrecision(task="binary")
+        self.map = {"val_map": AveragePrecision(task="binary")}
+        for protein_name in PROTEIN_NAMES:
+            for suffix in ["new", "exist"]:
+                self.map[f"val_map_{protein_name}_{suffix}"] = AveragePrecision(task="binary")
 
     def forward(self, batch):
         return self.model(batch)
@@ -33,12 +37,38 @@ class LBModelModule(L.LightningModule):
         ret = self.calculate_loss(batch, batch_idx)
         loss = ret["loss"]
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.map.update(F.sigmoid(ret["logits"]), batch["labels"].long())
+        self.metrics_update(
+            F.sigmoid(ret["logits"]),
+            batch["labels"].long(),
+            batch["sum_included_train"] > 0,
+        )
 
     def on_validation_epoch_end(self):
-        val_map = self.map.compute()
-        self.log("val_map", val_map, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.map.reset()
+        val_map = self.metrics_compute()
+        self.log_dict(val_map, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.metrics_reset()
+
+    def metrics_update(self, preds, labels, is_exist):
+        self.map["val_map"].update(preds, labels)
+        new_preds, new_labels = preds[~is_exist], labels[~is_exist]
+        exist_preds, exist_labels = preds[is_exist], labels[is_exist]
+        for i, protein_name in enumerate(PROTEIN_NAMES):
+            self.map[f"val_map_{protein_name}_new"].update(
+                new_preds[:, i], new_labels[:, i]
+            )
+            self.map[f"val_map_{protein_name}_exist"].update(
+                exist_preds[:, i], exist_labels[:, i]
+            )
+
+    def metrics_compute(self):
+        ret = {}
+        for k in self.map:
+            ret[k] = self.map[k].compute()
+        return ret
+
+    def metrics_reset(self):
+        for k in self.map:
+            self.map[k].reset()
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         logits = self.forward(batch)["logits"]

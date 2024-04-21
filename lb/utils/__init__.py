@@ -5,3 +5,6 @@ from lb.utils.utils import (
     get_num_training_steps,
     build_callbacks,
 )
+
+
+PROTEIN_NAMES = ["BRD4", "HSA", "sEH"]
