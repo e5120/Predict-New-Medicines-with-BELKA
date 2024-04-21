@@ -19,7 +19,7 @@ defaults:
 data_dir: /project/data/lb
 exp_name: dummy
 stage: train
-batch_size: 512
+batch_size: 256
 seed: 42
 num_workers: 0
 logger: False

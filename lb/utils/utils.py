@@ -19,6 +19,8 @@ def setup(cfg):
     else:
         cfg.model_checkpoint.dirpath = None
     L.seed_everything(cfg["seed"])
+    if "model_name" in cfg.model.params and cfg.model.params["model_name"] == "ibm/MoLFormer-XL-both-10pct":
+        cfg.trainer.precision = 32
     return cfg
 
 
