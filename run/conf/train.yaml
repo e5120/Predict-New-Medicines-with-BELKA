@@ -22,6 +22,7 @@ stage: train
 batch_size: 256
 seed: 42
 num_workers: 0
+benchmark: False
 logger: False
 
 trainer:

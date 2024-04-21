@@ -3,6 +3,7 @@ from pathlib import Path
 import hydra
 import polars as pl
 import numpy as np
+import torch
 import lightning as L
 from lightning.pytorch.callbacks import (
     EarlyStopping,
@@ -21,6 +22,7 @@ def setup(cfg):
     L.seed_everything(cfg["seed"])
     if "model_name" in cfg.model.params and cfg.model.params["model_name"] == "ibm/MoLFormer-XL-both-10pct":
         cfg.trainer.precision = 32
+    torch.backends.cudnn.benchmark = cfg.benchmark
     return cfg
 
 
