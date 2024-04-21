@@ -3,22 +3,9 @@ from pathlib import Path
 import hydra
 import torch
 import polars as pl
-from tqdm.auto import tqdm
+import lightning as L
 
 from lb import LBDataModule, LBModelModule
-
-
-def inference(model, test_dataloader):
-    model.eval()
-    predictions = []
-    for batch_idx, batch in tqdm(enumerate(test_dataloader), total=len(test_dataloader)):
-        for k, v in batch.items():
-            batch[k] = v.to("cuda")
-        with torch.no_grad():
-            preds = model.predict_step(batch, batch_idx)
-        predictions.append(preds)
-    predictions = torch.cat(predictions).cpu().numpy()
-    return predictions
 
 
 @hydra.main(config_path=None, config_name="config", version_base=None)
@@ -28,6 +15,7 @@ def main(cfg):
     datamodule = LBDataModule(cfg)
     test_dataloader = datamodule.test_dataloader()
     test_df = test_dataloader.dataset.df.select(["molecule_smiles"])
+    trainer = L.Trainer(**cfg.trainer)
     if cfg.dir.name == "kaggle":
         model_paths = Path(cfg.dir.model_dir, f"hms-{cfg.exp_name}").glob("*.ckpt")
         output_dir = Path("/kaggle/working")
@@ -40,7 +28,8 @@ def main(cfg):
             checkpoint_path=model_path,
             cfg=cfg,
         )
-        predictions = inference(modelmodule, test_dataloader)
+        predictions = trainer.predict(modelmodule, test_dataloader)
+        predictions = torch.cat(predictions).numpy()
         pred_dfs = []
         for i, protein_name in enumerate(protein_names):
             pred_dfs.append(

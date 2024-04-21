@@ -19,13 +19,13 @@ defaults:
 data_dir: /project/data/lb
 exp_name: dummy
 stage: train
-batch_size: 128
+batch_size: 512
 seed: 42
 num_workers: 0
 logger: False
 
 trainer:
-  max_epochs: 20
+  max_epochs: 10
   min_epochs: 100
   enable_progress_bar: True
   accelerator: auto
@@ -37,15 +37,15 @@ trainer:
 
 # early stopping
 early_stopping:
-  monitor: "val_loss"
-  mode: "min"
+  monitor: "val_map"
+  mode: "max"
   patience: 5
 
 # model checkpoint
 model_checkpoint:
   save_weights_only: True
-  monitor: "val_loss"
-  mode: "min"
+  monitor: "val_map"
+  mode: "max"
   dirpath: True
   save_top_k: 1
   verbose: 1

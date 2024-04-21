@@ -79,7 +79,7 @@ def get_num_training_steps(n_data, cfg):
 
 def build_callbacks(cfg):
     checkpoint_callback = ModelCheckpoint(
-        filename=f"model-{{val_loss:.4f}}",
+        filename=f"model-{{val_map:.4f}}",
         **cfg.model_checkpoint,
     )
     early_stop_callback = EarlyStopping(**cfg.early_stopping)
