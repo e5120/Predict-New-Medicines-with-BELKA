@@ -19,7 +19,6 @@ class LMDataset(LBBaseDataset):
             .from_pandas(df.to_pandas())
             .map(tokenize, batched=True, fn_kwargs={"tokenizer": self.tokenizer})
             .to_pandas()
-            .reset_index(drop=True)
         )
         self.df = pl.from_pandas(df)
 
