@@ -26,8 +26,8 @@ class LMDataset(LBBaseDataset):
         data = {
             "input_ids": np.array(self.df[index, "input_ids"]),
             "attention_mask": np.array(self.df[index, "attention_mask"]),
-            "sum_included_train": self.df[index, "sum_included_train"],
         }
         if self.stage in ["train", "val"]:
+            data["sum_included_train"] = self.df[index, "sum_included_train"]
             data["label"] = self._generate_label(index)
         return data
