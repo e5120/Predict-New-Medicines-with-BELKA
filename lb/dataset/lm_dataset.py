@@ -1,12 +1,16 @@
 import numpy as np
 import polars as pl
 from datasets import Dataset
+from rdkit import Chem
 
 from lb.dataset import LBBaseDataset
 
 
 def tokenize(batch, tokenizer):
-    output = tokenizer(batch["molecule_smiles"], truncation=True)
+    mols = [Chem.MolFromSmiles(smiles) for smiles in batch["molecule_smiles"]]
+    normalized = [Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False) for mol in mols]
+    output = tokenizer(normalized, truncation=True)
+    # output = tokenizer(batch["molecule_smiles"], truncation=True)
     return output
 
 

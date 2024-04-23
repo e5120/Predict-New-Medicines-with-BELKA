@@ -13,7 +13,7 @@ defaults:
   - dir: local
   - dataset: lm_dataset
   - model: lm_model
-  - optimizer: adam
+  - optimizer: radam
   - scheduler: constant
 
 data_dir: /project/data/lb

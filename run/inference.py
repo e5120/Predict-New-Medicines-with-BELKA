@@ -17,7 +17,7 @@ def main(cfg):
     test_df = test_dataloader.dataset.df.select(["molecule_smiles"])
     trainer = L.Trainer(**cfg.trainer)
     if cfg.dir.name == "kaggle":
-        model_paths = Path(cfg.dir.model_dir, f"hms-{cfg.exp_name}").glob("*.ckpt")
+        model_paths = Path(cfg.dir.model_dir, f"lb-{cfg.exp_name}").glob("*.ckpt")
         output_dir = Path("/kaggle/working")
     else:
         model_paths = Path(cfg.dir.model_dir, cfg.exp_name, "single").glob("*.ckpt")
