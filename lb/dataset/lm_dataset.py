@@ -3,8 +3,8 @@ from lb.dataset import LBBaseDataset
 
 
 class LMDataset(LBBaseDataset):
-    def __init__(self, df, data, bb1, bb2, bb3, tokenizer, stage="train"):
-        super().__init__(df, data, bb1, bb2, bb3, tokenizer, stage=stage)
+    def __init__(self, df, data, bb1, bb2, bb3, stage="train"):
+        super().__init__(df, data, bb1, bb2, bb3, stage=stage)
         assert "lm_feats" in data
         self.data = data["lm_feats"]
 
