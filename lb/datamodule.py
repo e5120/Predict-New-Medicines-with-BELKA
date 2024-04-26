@@ -4,6 +4,7 @@ import numpy as  np
 import polars as pl
 import lightning as L
 from torch.utils.data import DataLoader
+from torch_geometric.data import DenseDataLoader
 from transformers import AutoTokenizer, DataCollatorWithPadding
 
 import lb.dataset
@@ -19,11 +20,12 @@ class LBDataModule(L.LightningDataModule):
         assert cfg.stage in ["train", "test"]
         self.cfg = cfg
         self.data_dir = Path(cfg.dir.data_dir)
-        model_name = self.cfg.model.params["model_name"]
-        if model_name == "ibm/MoLFormer-XL-both-10pct":
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        else:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        if "model_name" in self.cfg.model.params:
+            model_name = self.cfg.model.params["model_name"]
+            if model_name == "ibm/MoLFormer-XL-both-10pct":
+                self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            else:
+                self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # load dataset
         self.bb1 = pl.read_parquet(Path(cfg.data_dir, "processed_bb1.parquet"))
         self.bb2 = pl.read_parquet(Path(cfg.data_dir, "processed_bb2.parquet"))
@@ -127,6 +129,15 @@ class LBDataModule(L.LightningDataModule):
                 drop_last=drop_last,
                 pin_memory=True,
                 collate_fn=DataCollatorWithPadding(self.tokenizer),
+            )
+        elif "graph_feats" in self.data:
+            return DenseDataLoader(
+                dataset,
+                batch_size=batch_size,
+                # num_workers=self.cfg.num_workers,
+                # shuffle=shuffle,
+                # drop_last=drop_last,
+                # pin_memory=True,
             )
         else:
             raise NotImplementedError
