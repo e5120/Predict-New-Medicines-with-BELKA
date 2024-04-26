@@ -9,6 +9,7 @@ class BasePreprocessor(ABC):
         self.batch_size = cfg.batch_size
 
     def apply(self, df, **kwargs):
+        assert "id" in df
         data = {}
         group_size = (len(df) - 1) // self.batch_size + 1
         for group_idx in tqdm(range(group_size)):

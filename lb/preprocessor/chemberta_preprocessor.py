@@ -24,5 +24,5 @@ class ChemBERTaPreprocessor(BasePreprocessor):
             .to_pandas()
         )
         for i in range(len(df)):
-            data[start_idx+i] = df.loc[i, "input_ids"].astype(np.int16)
+            data[df.loc[i, "id"]] = df.loc[i, "input_ids"].astype(np.int16)
         return data

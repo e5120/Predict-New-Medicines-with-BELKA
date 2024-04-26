@@ -9,6 +9,7 @@ import lb.preprocessor
 
 @hydra.main(config_path="conf", config_name="preprocess_data", version_base=None)
 def main(cfg):
+    # 既存ファイルのチェック
     filename = f"{cfg.preprocessor.prefix}_{cfg.stage}.npy"
     if Path(cfg.output_dir, filename).is_file():
         if cfg.overwrite:
@@ -16,11 +17,15 @@ def main(cfg):
         else:
             print(f"already exists: {filename}")
             return
-    if not cfg.debug:
-        cfg.n_rows = None
-    df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"), n_rows=cfg.n_rows)
+    # データ読み込み
+    df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"))
+    df = df.with_columns(pl.int_range(len(df)).cast(pl.UInt32).alias("id"))
+    if cfg.debug:
+        df = df.sample(n=cfg.n_rows, seed=42)
+    # 前処理の適用
     preprocessor = getattr(lb.preprocessor, cfg.preprocessor.name)(cfg)
     data = preprocessor.apply(df)
+    # 処理済みデータの保存
     np.save(Path(cfg.output_dir, filename), data)
 
 
