@@ -3,6 +3,7 @@ from pathlib import Path
 import hydra
 import polars as pl
 from tqdm.auto import tqdm
+from rdkit import Chem
 
 
 SCHEMA = {
@@ -93,11 +94,22 @@ def generate_bb_dataframe(bb):
     return df
 
 
+def transform_smiles(x):
+    mol = Chem.MolFromSmiles(x)
+    smiles = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
+    return smiles
+
+
 def generate_dataset(files, bb1={}, bb2={}, bb3={}, is_test=False):
     dfs = []
     for filename in tqdm(files):
         df = pl.read_parquet(filename)
         df = transform_dataset(df, is_test=is_test)
+        df = df.with_columns(
+            pl.col("molecule_smiles")
+            .map_elements(transform_smiles, return_dtype=pl.Utf8)
+            .alias("non_isomeric_molecule_smiles")
+        )
         bb1 = register_buildingblock(df, 1, bb1, is_test=is_test)
         bb2 = register_buildingblock(df, 2, bb2, is_test=is_test)
         bb3 = register_buildingblock(df, 3, bb3, is_test=is_test)

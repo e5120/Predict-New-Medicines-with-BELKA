@@ -27,7 +27,7 @@ logger: False
 
 trainer:
   max_epochs: 10
-  min_epochs: 100
+  min_epochs: 5
   enable_progress_bar: True
   accelerator: auto
   precision: "16-mixed"
@@ -40,7 +40,7 @@ trainer:
 early_stopping:
   monitor: "val_map"
   mode: "max"
-  patience: 5
+  patience: 3
 
 # model checkpoint
 model_checkpoint:
