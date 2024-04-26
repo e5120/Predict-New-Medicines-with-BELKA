@@ -1,4 +1,5 @@
 from pathlib import Path
+from multiprocessing import Pool
 
 import hydra
 import polars as pl
@@ -105,11 +106,11 @@ def generate_dataset(files, bb1={}, bb2={}, bb3={}, is_test=False):
     for filename in tqdm(files):
         df = pl.read_parquet(filename)
         df = transform_dataset(df, is_test=is_test)
-        df = df.with_columns(
-            pl.col("molecule_smiles")
-            .map_elements(transform_smiles, return_dtype=pl.Utf8)
-            .alias("non_isomeric_molecule_smiles")
-        )
+        with Pool() as p:
+            non_isomeric_smiles = p.map(transform_smiles, df["molecule_smiles"].to_list())
+            df = df.with_columns(
+                pl.Series(non_isomeric_smiles).alias("non_isomeric_molecule_smiles"),
+            )
         bb1 = register_buildingblock(df, 1, bb1, is_test=is_test)
         bb2 = register_buildingblock(df, 2, bb2, is_test=is_test)
         bb3 = register_buildingblock(df, 3, bb3, is_test=is_test)
@@ -125,6 +126,7 @@ def generate_dataset(files, bb1={}, bb2={}, bb3={}, is_test=False):
         )
         dfs.append(df)
     df = pl.concat(dfs)
+    df = df.with_columns(pl.int_range(len(df).alias("id")))
     return df, bb1, bb2, bb3
 
 
