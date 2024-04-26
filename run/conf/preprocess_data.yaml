@@ -3,10 +3,12 @@ defaults:
   - preprocessor: chemberta
 
 n_rows: ~
-batch_size: 10000000
+batch_size: 1000000
 data_dir: /project/data/lb
 output_dir: /project/data/lb
+seed: 42
 stage: test
 overwrite: False
 use_cols:
+  - id
   - non_isomeric_molecule_smiles
