@@ -103,7 +103,6 @@ class LBDataModule(L.LightningDataModule):
             self.bb1,
             self.bb2,
             self.bb3,
-            self.tokenizer,
             stage=stage,
             **self.cfg.dataset.params,
         )
