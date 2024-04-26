@@ -3,7 +3,7 @@ hydra:
     name: train
     chdir: true
   run:
-    dir: ${dir.model_dir}/${exp_name}/single
+    dir: ${dir.model_dir}/${exp_name}/${dir_name}
   sweep:
     dir: ${dir.model_dir}/${exp_name}
     subdir: run${hydra.job.num}
@@ -17,6 +17,7 @@ defaults:
   - scheduler: constant
 
 data_dir: /project/data/lb
+dir_name: single
 exp_name: dummy
 stage: train
 batch_size: 256

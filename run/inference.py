@@ -20,8 +20,8 @@ def main(cfg):
         model_paths = Path(cfg.dir.model_dir, f"lb-{cfg.exp_name}").glob("*.ckpt")
         output_dir = Path("/kaggle/working")
     else:
-        model_paths = Path(cfg.dir.model_dir, cfg.exp_name, "single").glob("*.ckpt")
-        output_dir = Path(cfg.dir.model_dir, cfg.exp_name, "single")
+        model_paths = Path(cfg.dir.model_dir, cfg.exp_name, cfg.dir_name).glob("*.ckpt")
+        output_dir = Path(cfg.dir.model_dir, cfg.exp_name, cfg.dir_name)
     for model_path in model_paths:
         print(model_path)
         modelmodule = LBModelModule.load_from_checkpoint(
