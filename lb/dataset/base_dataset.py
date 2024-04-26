@@ -5,9 +5,10 @@ from torch.utils.data import Dataset
 
 
 class LBBaseDataset(Dataset):
-    def __init__(self, df, bb1, bb2, bb3, tokenizer, stage="train"):
+    def __init__(self, df, data, bb1, bb2, bb3, tokenizer, stage="train"):
         assert stage in ["train", "val", "test"]
         self.df = df
+        self.data = data
         self.bb1 = bb1
         self.bb2 = bb2
         self.bb3 = bb3
