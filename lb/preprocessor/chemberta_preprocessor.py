@@ -15,11 +15,11 @@ class ChemBERTaPreprocessor(BasePreprocessor):
         super().__init__(cfg)
         self.tokenizer = AutoTokenizer.from_pretrained("DeepChem/ChemBERTa-77M-MTR")
 
-    def _apply(self, df, data, start_idx):
-        end_idx = start_idx + self.batch_size
+    def _apply(self, df):
+        data = {}
         df = (
             Dataset
-            .from_pandas(df[start_idx: end_idx].to_pandas())
+            .from_pandas(df.to_pandas())
             .map(tokenize, batched=True, fn_kwargs={"tokenizer": self.tokenizer})
             .to_pandas()
         )

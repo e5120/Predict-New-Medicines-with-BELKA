@@ -10,13 +10,13 @@ class BasePreprocessor(ABC):
 
     def apply(self, df, **kwargs):
         assert "id" in df
-        data = {}
         group_size = (len(df) - 1) // self.batch_size + 1
         for group_idx in tqdm(range(group_size)):
             start_idx = group_idx * self.batch_size
-            data = self._apply(df, data, start_idx, **kwargs)
-        return data
+            end_idx = start_idx + self.batch_size
+            data = self._apply(df[start_idx: end_idx], **kwargs)
+            yield data
 
     @abstractmethod
-    def _apply(self, df, data, start_idx, **kwargs):
+    def _apply(self, df, start_idx, **kwargs):
         raise NotImplementedError
