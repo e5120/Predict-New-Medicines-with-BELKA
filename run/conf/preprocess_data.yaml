@@ -1,0 +1,12 @@
+defaults:
+  - _self_
+  - preprocessor: chemberta
+
+batch_size: 10000
+data_dir: /project/data/lb
+output_dir: /project/data/lb
+stage: test
+overwrite: False
+
+debug: True
+n_rows: 100000
