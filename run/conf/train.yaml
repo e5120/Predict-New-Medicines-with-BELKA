@@ -53,9 +53,7 @@ model_checkpoint:
   verbose: 1
 
 # train-val split
-bb1_frac: 0.1
-bb2_frac: 0.2
-bb3_frac: 0.2
-overwrite: False
-fraction: 0.01
-val_fraction: 0.1
+n_rows: 1000000
+bb1_frac: 0.2
+bb2_frac: 0.4
+bb3_frac: 0.4

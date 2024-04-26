@@ -3,5 +3,5 @@ params: {
   model_name: DeepChem/ChemBERTa-77M-MTR,  # 5M|10M|77M, MTR|MLM
   # model_name: ibm/MoLFormer-XL-both-10pct,
   # model_name: entropy/roberta_zinc_480m,
-  pos_weight: [50],
+  pos_weight: [1],
 }
