@@ -16,8 +16,6 @@ class ChemBERTaPreprocessor(BasePreprocessor):
         self.tokenizer = AutoTokenizer.from_pretrained("DeepChem/ChemBERTa-77M-MTR")
 
     def _apply(self, df, data, start_idx):
-        df = df.select(["id", "non_isomeric_molecule_smiles"])
-        # df = df.select(["id", "molecule_smiles"])
         end_idx = start_idx + self.batch_size
         df = (
             Dataset

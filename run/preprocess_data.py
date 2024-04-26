@@ -19,7 +19,10 @@ def main(cfg):
             print(f"already exists: {filename}")
             return
     # データ読み込み
-    df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"))
+    df = pl.read_parquet(
+        Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"),
+        columns=["non_isomeric_molecule_smiles"],
+    )
     df = df.with_columns(pl.int_range(len(df)).cast(pl.UInt32).alias("id"))
     if cfg.n_rows:
         df = df.sample(n=cfg.n_rows, seed=42)
