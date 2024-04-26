@@ -1,3 +1,4 @@
+import numpy as np
 from transformers import AutoTokenizer
 from datasets import Dataset
 
@@ -23,8 +24,5 @@ class ChemBERTaPreprocessor(BasePreprocessor):
             .to_pandas()
         )
         for i in range(len(df)):
-            data[start_idx+i] = {
-                "input_ids": df.loc[i, "input_ids"],
-                "attention_mask": df.loc[i, "attention_mask"],
-            }
+            data[start_idx+i] = df.loc[i, "input_ids"].astype(np.int16)
         return data
