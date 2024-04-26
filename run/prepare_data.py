@@ -126,7 +126,7 @@ def generate_dataset(files, bb1={}, bb2={}, bb3={}, is_test=False):
         )
         dfs.append(df)
     df = pl.concat(dfs)
-    df = df.with_columns(pl.int_range(len(df).alias("id")))
+    df = df.with_columns(pl.int_range(len(df)).cast(pl.UInt32).alias("id"))
     return df, bb1, bb2, bb3
 
 
