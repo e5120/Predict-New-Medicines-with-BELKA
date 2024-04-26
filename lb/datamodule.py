@@ -6,6 +6,7 @@ import lightning as L
 from torch.utils.data import DataLoader
 from torch_geometric.data import DenseDataLoader
 from transformers import AutoTokenizer, DataCollatorWithPadding
+from tqdm.auto import tqdm
 
 import lb.dataset
 from lb.utils import lb_train_val_split, PROTEIN_NAMES
@@ -34,35 +35,26 @@ class LBDataModule(L.LightningDataModule):
         if cfg.stage == "train":
             df = pl.read_parquet(
                 Path(cfg.data_dir, "processed_train.parquet"),
-                columns=["bb1_code", "bb2_code", "bb3_code"] + PROTEIN_NAMES,
-            )
-            df = df.with_columns(
-                pl.sum_horizontal(PROTEIN_NAMES).cast(pl.UInt8).alias("sum_binds"),
-                pl.int_range(len(df)).cast(pl.UInt32).alias("id"),
+                columns=["id", "bb1_code", "bb2_code", "bb3_code"] + PROTEIN_NAMES,
             )
             for feats in self.data.values():
-                if feats:
-                    df = df.filter(pl.col("id").is_in(feats.keys()))
-            if cfg.n_rows:
-                df = df.sample(n=min(len(df), cfg.n_rows))
-            trn_df, val_df = lb_train_val_split(
+                df = df.filter(pl.col("id").is_in(feats.keys()))
+            df = df.with_columns(
+                pl.sum_horizontal(PROTEIN_NAMES).cast(pl.UInt8).alias("sum_binds"),
+            )
+            self.trn_df, self.val_df = lb_train_val_split(
                 df, self.bb1, self.bb2, self.bb3,
                 bb1_frac=cfg.bb1_frac,
                 bb2_frac=cfg.bb2_frac,
                 bb3_frac=cfg.bb3_frac,
                 seed=cfg.seed,
             )
-            self.trn_df = trn_df
-            self.val_df = val_df.sort("id")
             trn_stats = self._get_stats(self.trn_df, "train")
             val_stats = self._get_stats(self.val_df, "val")
             stats_df = pl.from_dicts([trn_stats, val_stats])
             print(stats_df)
         else:
-            test_df = pl.read_parquet(Path(cfg.data_dir, "processed_test.parquet"))
-            self.test_df = test_df.with_columns(
-                pl.int_range(len(test_df)).cast(pl.UInt32).alias("id")
-            )
+            self.test_df = pl.read_parquet(Path(cfg.data_dir, "processed_test.parquet"))
             print(f"# of test: {len(self.test_df)}")
         # define Dataset class
         self.dataset_cls = getattr(lb.dataset, self.cfg.dataset.name)
@@ -82,12 +74,14 @@ class LBDataModule(L.LightningDataModule):
     def load_features(self, feature_file_dict):
         data = {}
         for feature_type, feature_file in feature_file_dict.items():
-            if feature_file is None:
-                data[feature_type] = None
-            else:
-                filename = Path(self.cfg.data_dir, f"{feature_file}_{self.cfg.stage}.npy")
-                print(f"loading {filename}")
-                data[feature_type] = np.load(filename, allow_pickle=True).item()
+            if feature_file is not None:
+                print(f"loading {feature_type}")
+                files = sorted(list(Path(self.data_dir, feature_file).glob(f"{feature_file}_{self.cfg.stage}_*.npy")))
+                data[feature_type] = {}
+                for filename in tqdm(files):
+                    data[feature_type].update(np.load(filename, allow_pickle=True).item())
+                    if self.cfg.n_rows and len(data[feature_type]) >= self.cfg.n_rows:
+                        break
         return data
 
     def _generate_dataset(self, stage):

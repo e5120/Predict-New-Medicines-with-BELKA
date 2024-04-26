@@ -26,6 +26,12 @@ num_workers: 5
 benchmark: False
 logger: False
 
+# train-val split
+n_rows: 1000000
+bb1_frac: 0.2
+bb2_frac: 0.4
+bb3_frac: 0.4
+
 trainer:
   max_epochs: 10
   min_epochs: 5
@@ -51,9 +57,3 @@ model_checkpoint:
   dirpath: True
   save_top_k: 1
   verbose: 1
-
-# train-val split
-n_rows: 1000000
-bb1_frac: 0.2
-bb2_frac: 0.4
-bb3_frac: 0.4
