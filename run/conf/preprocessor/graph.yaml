@@ -1,2 +1,9 @@
 name: GraphPreprocessor
 prefix: graph
+under_sampling_ratio: 10
+use_cols:
+  - id
+  - molecule_smiles
+  - BRD4
+  - HSA
+  - sEH

@@ -5,6 +5,7 @@ import numpy as np
 import polars as pl
 
 import lb.preprocessor
+from lb.utils import PROTEIN_NAMES
 
 
 @hydra.main(config_path="conf", config_name="preprocess_data", version_base=None)
@@ -23,10 +24,10 @@ def main(cfg):
             print(f"already exists: {basename}")
             return
     # データ読み込み
-    df = pl.read_parquet(
-        Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"),
-        columns=cfg.use_cols,
-    )
+    use_cols = cfg.preprocessor.use_cols
+    if cfg.stage == "test":
+        use_cols = list(filter(lambda x: x not in PROTEIN_NAMES, use_cols))
+    df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"), columns=use_cols)
     if cfg.n_rows:
         df = df.sample(n=cfg.n_rows, seed=cfg.seed)
     df = df.select(pl.all().shuffle(seed=cfg.seed))

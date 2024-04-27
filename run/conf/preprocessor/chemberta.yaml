@@ -1,2 +1,5 @@
 name: ChemBERTaPreprocessor
 prefix: chemberta
+use_cols:
+  - id
+  - non_isomeric_molecule_smiles
