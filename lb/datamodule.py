@@ -77,9 +77,7 @@ class LBDataModule(L.LightningDataModule):
         for feature_type, feature_file in feature_file_dict.items():
             if feature_file is not None:
                 print(f"loading {feature_type}")
-                files = list(Path(self.data_dir, feature_file).glob(f"{feature_file}_{self.cfg.stage}_*.npy"))
-                np.random.shuffle(files)
-                print(files[:10])
+                files = sorted(list(Path(self.data_dir, feature_file).glob(f"{feature_file}_{self.cfg.stage}_*.npy")))
                 data[feature_type] = {}
                 for filename in tqdm(files):
                     data[feature_type].update(np.load(filename, allow_pickle=True).item())
