@@ -49,6 +49,7 @@ class LBDataModule(L.LightningDataModule):
                 bb3_frac=cfg.bb3_frac,
                 seed=cfg.seed,
             )
+            self.val_df = self.val_df.sort("id")
             trn_stats = self._get_stats(self.trn_df, "train")
             val_stats = self._get_stats(self.val_df, "val")
             stats_df = pl.from_dicts([trn_stats, val_stats])
@@ -76,7 +77,9 @@ class LBDataModule(L.LightningDataModule):
         for feature_type, feature_file in feature_file_dict.items():
             if feature_file is not None:
                 print(f"loading {feature_type}")
-                files = sorted(list(Path(self.data_dir, feature_file).glob(f"{feature_file}_{self.cfg.stage}_*.npy")))
+                files = list(Path(self.data_dir, feature_file).glob(f"{feature_file}_{self.cfg.stage}_*.npy"))
+                np.random.shuffle(files)
+                print(files[:10])
                 data[feature_type] = {}
                 for filename in tqdm(files):
                     data[feature_type].update(np.load(filename, allow_pickle=True).item())
