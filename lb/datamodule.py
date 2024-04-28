@@ -10,6 +10,7 @@ from tqdm.auto import tqdm
 
 import lb.dataset
 from lb.utils import lb_train_val_split, PROTEIN_NAMES
+from lb.collator import pyg_collate_fn
 
 
 pl.Config.set_tbl_cols(-1)
@@ -116,26 +117,20 @@ class LBDataModule(L.LightningDataModule):
             drop_last = False
             batch_size = 1024
         if "lm_feats" in self.data:
-            return DataLoader(
-                dataset,
-                batch_size=batch_size,
-                num_workers=self.cfg.num_workers,
-                shuffle=shuffle,
-                drop_last=drop_last,
-                pin_memory=True,
-                collate_fn=DataCollatorWithPadding(self.tokenizer),
-            )
+            collate_fn = DataCollatorWithPadding(self.tokenizer)
         elif "graph_feats" in self.data:
-            return DenseDataLoader(
-                dataset,
-                batch_size=batch_size,
-                # num_workers=self.cfg.num_workers,
-                # shuffle=shuffle,
-                # drop_last=drop_last,
-                # pin_memory=True,
-            )
+            collate_fn = pyg_collate_fn
         else:
             raise NotImplementedError
+        return DataLoader(
+            dataset,
+            batch_size=batch_size,
+            num_workers=self.cfg.num_workers,
+            shuffle=shuffle,
+            drop_last=drop_last,
+            pin_memory=True,
+            collate_fn=collate_fn,
+        )
 
     def train_dataloader(self):
         return self._generate_dataloader("train")

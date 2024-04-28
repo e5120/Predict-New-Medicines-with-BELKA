@@ -1,0 +1,5 @@
+name: GraphDataset
+features:
+  graph_feats: graph
+params: {
+}

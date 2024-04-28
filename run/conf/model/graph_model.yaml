@@ -1,0 +1,5 @@
+name: "DiffPool"
+params:
+  max_nodes: 128
+  num_features: 9
+  num_classes: 3
