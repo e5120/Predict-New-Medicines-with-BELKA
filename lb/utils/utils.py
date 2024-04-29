@@ -38,6 +38,9 @@ def bb_train_val_split(bb, no, bb_frac, seed=42):
 
 def lb_train_val_split(df, bb1, bb2, bb3, bb1_frac=0.1, bb2_frac=0.2, bb3_frac=0.2, seed=42):
     print("splitting dataset now ...")
+    bb1 = bb1.filter(pl.col("bb1_code").is_in(df["bb1_code"].unique()))
+    bb2 = bb2.filter(pl.col("bb2_code").is_in(df["bb2_code"].unique()))
+    bb3 = bb3.filter(pl.col("bb3_code").is_in(df["bb3_code"].unique()))
     bb1 = bb_train_val_split(bb1, 1, bb1_frac, seed=seed)
     bb2 = bb_train_val_split(bb2, 2, bb2_frac, seed=seed)
     bb3 = bb_train_val_split(bb3, 3, bb3_frac, seed=seed)
@@ -54,12 +57,13 @@ def lb_train_val_split(df, bb1, bb2, bb3, bb1_frac=0.1, bb2_frac=0.2, bb3_frac=0
         )
         .drop(["bb1_included_train", "bb2_included_train", "bb3_included_train"])
     )
-    new_val_df = df.filter(pl.col("sum_included_train") == 0)
-    trn_df = df.filter(pl.col("sum_included_train") > 0)
-    trn_indices, val_indices = train_test_split(np.arange(len(trn_df)), test_size=int(0.7 * len(new_val_df)), random_state=seed)
+    new_val_df = df.filter(pl.col("sum_included_train") < 3)
+    trn_df = df.filter(pl.col("sum_included_train") == 3)
+    trn_indices, val_indices = train_test_split(np.arange(len(trn_df)), test_size=int(0.3 * len(new_val_df)), random_state=seed)
     exist_val_df = trn_df[val_indices]
     val_df = pl.concat([new_val_df, exist_val_df])
     trn_df = trn_df[trn_indices]
+    print(val_df["sum_included_train"].value_counts().sort("sum_included_train"))
     return trn_df, val_df
 
 

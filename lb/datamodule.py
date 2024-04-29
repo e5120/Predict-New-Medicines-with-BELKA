@@ -65,6 +65,9 @@ class LBDataModule(L.LightningDataModule):
         stats = {
             "data_type": data_type,
             "data_size": len(df),
+            "num_bb1": df["bb1_code"].n_unique(),
+            "num_bb2": df["bb2_code"].n_unique(),
+            "num_bb3": df["bb3_code"].n_unique(),
         }
         for col in PROTEIN_NAMES:
             stats[f"{col}_ratio"] = df[col].mean()

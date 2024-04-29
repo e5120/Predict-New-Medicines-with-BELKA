@@ -40,7 +40,7 @@ class LBModelModule(L.LightningModule):
         self.metrics_update(
             F.sigmoid(ret["logits"]),
             batch["labels"].long(),
-            batch["sum_included_train"] > 0,
+            batch["sum_included_train"] == 3,
         )
 
     def on_validation_epoch_end(self):

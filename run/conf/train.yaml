@@ -28,9 +28,9 @@ logger: False
 
 # train-val split
 n_rows: 1000000
-bb1_frac: 0.2
-bb2_frac: 0.4
-bb3_frac: 0.4
+bb1_frac: 0.025
+bb2_frac: 0.05
+bb3_frac: 0.05
 
 trainer:
   max_epochs: 10
