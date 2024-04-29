@@ -1,47 +1,43 @@
-from math import ceil
-
-import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torch_geometric
-from torch_geometric.nn import DenseGCNConv as GCNConv, dense_diff_pool
+from torch_geometric.nn import DenseGCNConv as GCNConv
 
 from lb.model import BaseModel
 
 
 class GNNModel(BaseModel):
-    def __init__(self, in_channels, hidden_channels, out_channels,
-                 normalize=False, lin=True):
+    def __init__(self, in_channels, hidden_channels, out_channels, n_layers=1, normalize=False):
         super(GNNModel, self).__init__()
-
-        self.convs = torch.nn.ModuleList()
-        self.bns = torch.nn.ModuleList()
-        self.convs.append(GCNConv(in_channels, hidden_channels, normalize))
-        self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
-        self.convs.append(GCNConv(hidden_channels, hidden_channels, normalize))
-        self.bns.append(torch.nn.BatchNorm1d(hidden_channels))
-        self.convs.append(GCNConv(hidden_channels, out_channels, normalize))
-        self.bns.append(torch.nn.BatchNorm1d(out_channels))
+        channels = [in_channels] + [hidden_channels] * n_layers + [out_channels]
+        self.convs = nn.ModuleList([
+            GCNConv(channels[i], channels[i+1], normalize)
+            for i in range(len(channels)-1)
+        ])
+        self.bns = nn.ModuleList([
+            nn.BatchNorm1d(channels[i])
+            for i in range(1, len(channels))
+        ])
 
     def forward(self, x, adj, mask=None):
-        batch_size, num_nodes, in_channels = x.size()
         for step in range(len(self.convs)):
             x = self.convs[step](x, adj, mask)
-            x = torch.nn.functional.relu(x)
+            x = F.relu(x)
         return x
 
 
 class DiffPool(BaseModel):
-    def __init__(self, max_nodes=128, num_features=9, num_classes=3):
+    def __init__(self, hidden_channels, max_nodes=128, num_features=9, n_layers=1, num_classes=3):
         super(DiffPool, self).__init__()
-
-        num_nodes = ceil(0.25 * max_nodes)
-        self.gnn1_pool = GNNModel(num_features, 64, num_nodes)
-        self.gnn1_embed = GNNModel(num_features, 64, 64)
-        num_nodes = ceil(0.25 * num_nodes)
-        self.gnn2_pool = GNNModel(64, 64, num_nodes)
-        self.gnn2_embed = GNNModel(64, 64, 64, lin=False)
-        self.gnn3_embed = GNNModel(64, 64, 64, lin=False)
-        self.lin1 = torch.nn.Linear(64, 64)
-        self.lin2 = torch.nn.Linear(64, num_classes)
+        num_nodes = int(0.25 * max_nodes)
+        self.gnn1_pool = GNNModel(num_features, hidden_channels, num_nodes, n_layers=n_layers)
+        self.gnn1_embed = GNNModel(num_features, hidden_channels, hidden_channels, n_layers=n_layers)
+        num_nodes = int(0.25 * num_nodes)
+        self.gnn2_pool = GNNModel(hidden_channels, hidden_channels, num_nodes, n_layers=n_layers)
+        self.gnn2_embed = GNNModel(hidden_channels, hidden_channels, hidden_channels, n_layers=n_layers)
+        self.gnn3_embed = GNNModel(hidden_channels, hidden_channels, hidden_channels, n_layers=n_layers)
+        self.lin1 = nn.Linear(hidden_channels, hidden_channels)
+        self.lin2 = nn.Linear(hidden_channels, num_classes)
 
     def forward(self, batch):
         x = batch["graph"].x.float()
@@ -55,8 +51,7 @@ class DiffPool(BaseModel):
         x, adj, l2, e2 = torch_geometric.nn.dense_diff_pool(x, adj, s)
         x = self.gnn3_embed(x, adj)
         x = x.mean(dim=1)
-        x = x.float()
-        x = torch.nn.functional.relu(self.lin1(x))
+        x = F.relu(self.lin1(x))
         x = self.lin2(x)
         return {
             "logits": x,
