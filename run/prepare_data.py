@@ -6,6 +6,8 @@ import polars as pl
 from tqdm.auto import tqdm
 from rdkit import Chem
 
+from lb.utils import PROTEIN_NAMES
+
 
 SCHEMA = {
     "id": pl.Int32,
@@ -18,33 +20,22 @@ SCHEMA = {
 }
 
 
-def split_dataset(cfg):
-    data_dir = Path(cfg.data_dir)
-    output_dir = Path(cfg.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if cfg.stage == "train":
-        i = 0
-        while True:
-            df = pl.read_csv(
-                Path(data_dir, "train.csv"),
-                n_rows=cfg.n_rows,
-                skip_rows=i*cfg.n_rows,
-                schema=SCHEMA,
-            )
-            df = df.with_columns(pl.col("binds").cast(pl.Boolean))
-            start, end = df[0, "id"], df[-1, "id"]
-            print(f"processed {start} ~ {end}")
-            df.write_parquet(Path(output_dir, f"{cfg.prefix}train_{start}_{end}.parquet"))
-            if len(df) != cfg.n_rows:
-                break
-            i += 1
-    else:
-        df = pl.read_parquet(Path(data_dir, "test.parquet"))
-        df = df.with_columns(pl.col("id").cast(pl.Int32))
-        df.write_parquet(Path(output_dir, f"{cfg.prefix}test_0_{len(df)}.parquet"))
+def smiles2code(df ,s2c):
+    for i in range(1, 4):
+        bb_name = f"bb{i}_smiles"
+        uniq_smiles = df[bb_name].unique().to_list()
+        for smiles in uniq_smiles:
+            if smiles not in s2c:
+                s2c[smiles] = len(s2c)
+        df = (
+            df
+            .with_columns(pl.col(bb_name).replace(s2c).alias(f"bb{i}_code").cast(pl.Int16))
+            .drop(bb_name)
+        )
+    return df
 
 
-def transform_dataset(df, cols=["BRD4", "HSA", "sEH"], is_test=False):
+def transform_dataset(df, cols=PROTEIN_NAMES, is_test=False):
     if is_test:
         dataset_df = df.unique("molecule_smiles").drop(["id", "protein_name"])
     else:
@@ -67,32 +58,39 @@ def transform_dataset(df, cols=["BRD4", "HSA", "sEH"], is_test=False):
     return dataset_df
 
 
-def register_buildingblock(df, no, bb={}, is_test=False):
-    smile_col = f"bb{no}_smiles"
-    code_col = f"bb{no}_code"
-    for smile, count in df[smile_col].value_counts().to_numpy():
-        if smile not in bb:
-            bb[smile] = {
-                smile_col: smile,
-                code_col: len(bb),
-                "count": 0,
-                "included_train": False,
-                "included_test": False,
-            }
-        if is_test:
-            bb[smile]["included_test"] = True
-        else:
-            bb[smile]["included_train"] = True
-            bb[smile]["count"] += count
-    return bb
-
-
-def generate_bb_dataframe(bb):
-    df = pl.from_dicts(list(bb.values()))
-    df = df.with_columns(
-        pl.col(pl.Int64).cast(pl.Int32),
-    )
-    return df
+def split_dataset(cfg):
+    data_dir = Path(cfg.data_dir)
+    output_dir = Path(cfg.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    s2c = {}
+    # test data
+    print("processed test data")
+    test_df = pl.read_parquet(Path(data_dir, "test.parquet"))
+    test_df = transform_dataset(test_df, is_test=True)
+    test_df = smiles2code(test_df, s2c)
+    test_df.write_parquet(Path(output_dir, f"{cfg.prefix}test_0_{len(test_df)}.parquet"))
+    # train data
+    i = 0
+    while True:
+        df = pl.read_csv(
+            Path(data_dir, "train.csv"),
+            n_rows=cfg.n_rows,
+            skip_rows=i*cfg.n_rows,
+            schema=SCHEMA,
+        )
+        df = df.with_columns(pl.col("binds").cast(pl.Boolean))
+        start, end = df[0, "id"], df[-1, "id"]
+        print(f"processed {start} ~ {end}")
+        df = transform_dataset(df)
+        df = smiles2code(df, s2c)
+        df.write_parquet(Path(output_dir, f"{cfg.prefix}train_{start}_{end}.parquet"))
+        if len(df) != cfg.n_rows // 3:
+            break
+        i += 1
+    # bb smiles to code
+    bb_df = pl.DataFrame({"bb_smiles": s2c.keys(), "bb_code": s2c.values()})
+    bb_df = bb_df.with_columns(pl.col("bb_code").cast(pl.Int16))
+    bb_df.write_parquet(Path(output_dir, f"{cfg.prefix}bb.parquet"))
 
 
 def transform_smiles(x):
@@ -101,57 +99,85 @@ def transform_smiles(x):
     return smiles
 
 
-def generate_dataset(files, bb1={}, bb2={}, bb3={}, is_test=False):
+def load_dataset(files):
     dfs = []
     for filename in tqdm(files):
         df = pl.read_parquet(filename)
-        df = transform_dataset(df, is_test=is_test)
         with Pool() as p:
             non_isomeric_smiles = p.map(transform_smiles, df["molecule_smiles"].to_list())
             df = df.with_columns(
                 pl.Series(non_isomeric_smiles).alias("non_isomeric_molecule_smiles"),
             )
-        bb1 = register_buildingblock(df, 1, bb1, is_test=is_test)
-        bb2 = register_buildingblock(df, 2, bb2, is_test=is_test)
-        bb3 = register_buildingblock(df, 3, bb3, is_test=is_test)
-        bb1_df = generate_bb_dataframe(bb1)[["bb1_smiles", "bb1_code"]]
-        bb2_df = generate_bb_dataframe(bb2)[["bb2_smiles", "bb2_code"]]
-        bb3_df = generate_bb_dataframe(bb3)[["bb3_smiles", "bb3_code"]]
-        df = (
-            df
-            .join(bb1_df, on="bb1_smiles", how="inner")
-            .join(bb2_df, on="bb2_smiles", how="inner")
-            .join(bb3_df, on="bb3_smiles", how="inner")
-            .drop(["bb1_smiles", "bb2_smiles", "bb3_smiles"])
-        )
         dfs.append(df)
     df = pl.concat(dfs)
     df = df.with_columns(pl.int_range(len(df)).cast(pl.UInt32).alias("id"))
-    return df, bb1, bb2, bb3
+    return df
 
 
 def aggregate_dataset(cfg):
     data_dir = Path(cfg.data_dir)
     trn_files = sorted(list(data_dir.glob(f"{cfg.prefix}train_*.parquet")))
     test_files = sorted(list(data_dir.glob(f"{cfg.prefix}test_*.parquet")))
-    print(len(trn_files), len(test_files))
-    trn_df, bb1, bb2, bb3 = generate_dataset(trn_files, is_test=False)
-    test_df, bb1, bb2, bb3 = generate_dataset(test_files, bb1=bb1, bb2=bb2, bb3=bb3, is_test=True)
+    trn_df = load_dataset(trn_files)
+    test_df = load_dataset(test_files)
     trn_df.write_parquet(Path(cfg.output_dir, f"{cfg.prefix}train.parquet"))
     test_df.write_parquet(Path(cfg.output_dir, f"{cfg.prefix}test.parquet"))
-    generate_bb_dataframe(bb1).write_parquet(Path(cfg.output_dir, f"{cfg.prefix}bb1.parquet"))
-    generate_bb_dataframe(bb2).write_parquet(Path(cfg.output_dir, f"{cfg.prefix}bb2.parquet"))
-    generate_bb_dataframe(bb3).write_parquet(Path(cfg.output_dir, f"{cfg.prefix}bb3.parquet"))
+
+
+def cross_validation(cfg):
+    # ToDo: foldごとに正解ラベルの分布が違いすぎるのが問題ないか
+    df = pl.read_parquet(Path(cfg.data_dir, f"{cfg.prefix}train.parquet"))
+    bb_count = []
+    for i in range(1, 4):
+        bb_count.append(
+            df[f"bb{i}_code"].value_counts().rename({f"bb{i}_code": "bb_code"})
+        )
+    bb_count_df = (
+        pl.concat(bb_count)
+        .group_by("bb_code")
+        .agg(pl.col("count").sum())
+        .with_columns((pl.col("count").rank(method="ordinal") % cfg.n_folds).alias("fold"))
+    )
+    bb_count_df.write_parquet(Path(cfg.data_dir, f"{cfg.prefix}fold_info.parquet"))
+    for fold in range(cfg.n_folds):
+        trn_df = (
+            df
+            .filter(~pl.col("bb1_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+            .filter(~pl.col("bb2_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+            .filter(~pl.col("bb3_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+        )
+        non_share_val_df = (
+            df
+            .filter(pl.col("bb1_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+            .filter(pl.col("bb2_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+            .filter(pl.col("bb3_code").is_in(bb_count_df.filter(pl.col("fold") == fold)["bb_code"]))
+        )
+        share_val_df = trn_df.sample(n=int(0.725*len(non_share_val_df)), seed=cfg.seed)
+        val_df = pl.concat(
+            [
+                share_val_df.with_columns(pl.lit(False).alias("non-share")),
+                non_share_val_df.with_columns(pl.lit(True).alias("non-share")),
+            ],
+        )
+        print(f"[fold {fold}]")
+        print(f"# of non-share data: {len(non_share_val_df)}")
+        print(non_share_val_df[PROTEIN_NAMES].sum())
+        print(f"# of share data: {len(share_val_df)}")
+        print(share_val_df[PROTEIN_NAMES].sum())
+        val_df.write_parquet(Path(cfg.data_dir, f"{cfg.prefix}val_fold{fold}.parquet"))
 
 
 @hydra.main(config_path="conf", config_name="prepare_data", version_base=None)
 def main(cfg):
+    if cfg.output_dir is None:
+        cfg.output_dir = cfg.data_dir
     if cfg.phase == "split":
-        assert cfg.stage in ["train", "test"]
         assert cfg.n_rows % 3 == 0
         split_dataset(cfg)
     elif cfg.phase == "aggregate":
         aggregate_dataset(cfg)
+    elif cfg.phase == "cross_validation":
+        cross_validation(cfg)
     else:
         raise NotImplementedError
 

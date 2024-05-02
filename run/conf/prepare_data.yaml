@@ -1,6 +1,7 @@
 data_dir: /project/data/lb
-output_dir: /project/data/lb
+output_dir: ~
 prefix: processed_
-stage: test
 n_rows: 30000000
-phase: split  # split -> aggregate
+n_folds: 7
+phase: split  # split -> aggregate -> cross_validation
+seed: 42
