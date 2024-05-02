@@ -1,17 +1,21 @@
 from abc import abstractmethod
 
 import numpy as np
+import polars as pl
 from torch.utils.data import Dataset
+
+from lb.utils import PROTEIN_NAMES
 
 
 class LBBaseDataset(Dataset):
-    def __init__(self, df, data, bb1, bb2, bb3, stage="train"):
+    def __init__(self, df, data, bb_df, stage="train"):
         assert stage in ["train", "val", "test"]
+        for feat_type in data:
+            df = df.filter(pl.col("id").is_in(data[feat_type].keys()))
+            assert len(df) <= len(data[feat_type])
         self.df = df
         self.data = data
-        self.bb1 = bb1
-        self.bb2 = bb2
-        self.bb3 = bb3
+        self.bb_df = bb_df
         self.stage = stage
 
     def __len__(self):
@@ -19,6 +23,10 @@ class LBBaseDataset(Dataset):
 
     def __getitem__(self, index):
         data = self._generate_data(index)
+        if self.stage in ["train", "val"]:
+            data["label"] = self._generate_label(index)
+        if self.stage == "val":
+            data["non_share"] = self.df[index, "non-share"]
         if self.stage == "train":
             data = self._augment(data)
         data = self._post_process(data)
@@ -32,10 +40,10 @@ class LBBaseDataset(Dataset):
         if self.stage == "test":
             return np.array([0, 0, 0])
         else:
-            return self.df[index, ["BRD4", "HSA", "sEH"]].to_numpy()[0]
+            return self.df[index, PROTEIN_NAMES].to_numpy()[0]
 
     def _post_process(self, data):
         return data
 
-    def _augment(self, x):
-        return x
+    def _augment(self, data):
+        return data

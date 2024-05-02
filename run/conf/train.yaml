@@ -20,28 +20,24 @@ data_dir: /project/data/lb
 dir_name: single
 exp_name: dummy
 stage: train
+fold: 0
+chunk_size: 5
 batch_size: 256
 seed: 42
 num_workers: 5
 benchmark: False
 logger: False
 
-# train-val split
-n_rows: 1000000
-bb1_frac: 0.025
-bb2_frac: 0.05
-bb3_frac: 0.05
-
 trainer:
-  max_epochs: 10
-  min_epochs: 5
+  max_epochs: 60
+  min_epochs: 20
   enable_progress_bar: True
   accelerator: auto
   precision: "16-mixed"
   gradient_clip_val: ~
   accumulate_grad_batches: 1
-  num_sanity_val_steps: 5
-  # reload_dataloaders_every_n_epochs: 1
+  num_sanity_val_steps: 50
+  reload_dataloaders_every_n_epochs: 1
   devices: [0]
 
 # early stopping

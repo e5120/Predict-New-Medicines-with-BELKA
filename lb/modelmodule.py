@@ -15,8 +15,8 @@ class LBModelModule(L.LightningModule):
         self.model = getattr(lb.model, cfg.model.name)(**cfg.model.params)
         self.map = {"val_map": AveragePrecision(task="binary")}
         for protein_name in PROTEIN_NAMES:
-            for suffix in ["new", "exist"]:
-                self.map[f"val_map_{protein_name}_{suffix}"] = AveragePrecision(task="binary")
+            for suffix in ["non_share", "share"]:
+                self.map[f"{protein_name}_{suffix}"] = AveragePrecision(task="binary")
 
     def forward(self, batch):
         return self.model(batch)
@@ -40,35 +40,30 @@ class LBModelModule(L.LightningModule):
         self.metrics_update(
             F.sigmoid(ret["logits"]),
             batch["labels"].long(),
-            batch["sum_included_train"] == 3,
+            ~batch["non_share"],
         )
 
     def on_validation_epoch_end(self):
         val_map = self.metrics_compute()
         self.log_dict(val_map, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        self.metrics_reset()
 
     def metrics_update(self, preds, labels, is_exist):
+        preds = preds.detach()
+        labels = labels.detach()
+        is_exist = is_exist.detach()
         self.map["val_map"].update(preds, labels)
         new_preds, new_labels = preds[~is_exist], labels[~is_exist]
         exist_preds, exist_labels = preds[is_exist], labels[is_exist]
         for i, protein_name in enumerate(PROTEIN_NAMES):
-            self.map[f"val_map_{protein_name}_new"].update(
-                new_preds[:, i], new_labels[:, i]
-            )
-            self.map[f"val_map_{protein_name}_exist"].update(
-                exist_preds[:, i], exist_labels[:, i]
-            )
+            self.map[f"{protein_name}_non_share"].update(new_preds[:, i], new_labels[:, i])
+            self.map[f"{protein_name}_share"].update(exist_preds[:, i], exist_labels[:, i])
 
     def metrics_compute(self):
         ret = {}
         for k in self.map:
             ret[k] = self.map[k].compute()
-        return ret
-
-    def metrics_reset(self):
-        for k in self.map:
             self.map[k].reset()
+        return ret
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         logits = self.forward(batch)["logits"]

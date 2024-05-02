@@ -6,12 +6,12 @@ import polars as pl
 import lightning as L
 
 from lb import LBDataModule, LBModelModule
+from lb.utils import PROTEIN_NAMES
 
 
 @hydra.main(config_path=None, config_name="config", version_base=None)
 def main(cfg):
     cfg.stage = "test"
-    protein_names = ["BRD4", "HSA", "sEH"]
     datamodule = LBDataModule(cfg)
     test_dataloader = datamodule.test_dataloader()
     test_df = test_dataloader.dataset.df.select(["molecule_smiles"])
@@ -31,7 +31,7 @@ def main(cfg):
         predictions = trainer.predict(modelmodule, test_dataloader)
         predictions = torch.cat(predictions).numpy()
         pred_dfs = []
-        for i, protein_name in enumerate(protein_names):
+        for i, protein_name in enumerate(PROTEIN_NAMES):
             pred_dfs.append(
                 test_df.with_columns(
                     pl.lit(protein_name).alias("protein_name"),

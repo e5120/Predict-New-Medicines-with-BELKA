@@ -11,6 +11,14 @@ def main(cfg):
     cfg = setup(cfg)
     datamodule = LBDataModule(cfg)
     if False:
+        dataset = datamodule._generate_dataset("val")
+        print(len(dataset))
+        dataloader = datamodule._generate_dataloader("val")
+        print(len(dataloader))
+        exit()
+        for i in range(100):
+            print(i)
+            datamodule.train_dataloader()
         dataset = datamodule._generate_dataset("train")
         print(dataset[0])
         from tqdm.auto import tqdm
