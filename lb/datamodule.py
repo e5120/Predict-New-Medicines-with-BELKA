@@ -122,7 +122,14 @@ class LBDataModule(L.LightningDataModule):
             shuffle = False
             drop_last = False
         if "lm_feats" in self.feature_types:
-            collate_fn = DataCollatorWithPadding(self.tokenizer)
+            if "seq_len" in self.cfg.model.params:
+                collate_fn = DataCollatorWithPadding(
+                    self.tokenizer,
+                    max_length=self.cfg.model.params.seq_len,
+                    padding="max_length",
+                )
+            else:
+                collate_fn = DataCollatorWithPadding(self.tokenizer)
         elif "graph_feats" in self.feature_types:
             collate_fn = pyg_collate_fn
         else:
