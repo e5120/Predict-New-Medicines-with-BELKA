@@ -27,15 +27,26 @@ def main(cfg):
     use_cols = cfg.preprocessor.use_cols
     if cfg.stage == "test":
         use_cols = list(filter(lambda x: x not in PROTEIN_NAMES, use_cols))
-    df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"), columns=use_cols)
-    if cfg.n_rows:
-        df = df.sample(n=cfg.n_rows, seed=cfg.seed)
-    df = df.select(pl.all().shuffle(seed=cfg.seed))
-    # 前処理の適用
-    preprocessor = getattr(lb.preprocessor, cfg.preprocessor.name)(cfg)
-    data_gen = preprocessor.apply(df)
-    for i, data in enumerate(data_gen):
-        np.save(Path(output_dir, f"{basename}_{i}.npy"), data)
+    if cfg.stage == "val":
+        filenames = sorted(list(Path(cfg.data_dir).glob(f"processed_{cfg.stage}_*.parquet")))
+        for fold, filename in enumerate(filenames):
+            df = pl.read_parquet(filename, columns=use_cols)
+            df = df.select(pl.all().shuffle(seed=cfg.seed))
+            cfg.batch_size = len(df)
+            preprocessor = getattr(lb.preprocessor, cfg.preprocessor.name)(cfg)
+            data = next(preprocessor.apply(df))
+            assert len(data) == len(df)
+            np.save(Path(output_dir, f"{basename}_fold{fold}.npy"), data)
+    else:
+        df = pl.read_parquet(Path(cfg.data_dir, f"processed_{cfg.stage}.parquet"), columns=use_cols)
+        if cfg.n_rows:
+            df = df.sample(n=cfg.n_rows, seed=cfg.seed)
+        df = df.select(pl.all().shuffle(seed=cfg.seed))
+        # 前処理の適用
+        preprocessor = getattr(lb.preprocessor, cfg.preprocessor.name)(cfg)
+        data_gen = preprocessor.apply(df)
+        for i, data in enumerate(data_gen):
+            np.save(Path(output_dir, f"{basename}_{i}.npy"), data)
 
 
 if __name__=="__main__":
