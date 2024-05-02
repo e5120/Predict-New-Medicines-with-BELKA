@@ -23,6 +23,7 @@ class CNNModel(BaseModel):
             nn.BatchNorm1d(3*num_filters),
             nn.ReLU(inplace=True),
         )
+        self.global_max_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Sequential(
             nn.Linear(3*num_filters, 1024),
             nn.BatchNorm1d(1024),
@@ -38,11 +39,19 @@ class CNNModel(BaseModel):
             nn.Dropout(p=0.1),
             nn.Linear(512, num_labels),
         )
+        self.apply(self._init_weight)
+
+    def _init_weight(self, x):
+        if isinstance(x, nn.Conv1d):
+            nn.init.xavier_normal_(x.weight, gain=nn.init.calculate_gain("relu"))
+            if x.bias is not None:
+                nn.init.zeros_(x.bias)
 
     def forward(self, batch):
         emb = self.embedding(batch["input_ids"])
         x = self.conv_list(emb)
         x = F.max_pool1d(x, kernel_size=x.size(2))
+        x = self.global_max_pool(x)
         x = x.squeeze()
         logits = self.fc(x)
         return {
