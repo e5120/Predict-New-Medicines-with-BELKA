@@ -58,9 +58,3 @@ class DiffPool(BaseModel):
             "l": l1 + l2,
             "e": e1 + e2,
         }
-
-    def calculate_loss(self, batch):
-        output = self.forward(batch)
-        loss = self.loss_fn(output["logits"], batch["labels"].float())
-        output["loss"] = loss
-        return output
