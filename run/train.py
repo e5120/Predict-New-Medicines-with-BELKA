@@ -10,27 +10,6 @@ from lb.utils import setup, get_num_training_steps, build_callbacks
 def main(cfg):
     cfg = setup(cfg)
     datamodule = LBDataModule(cfg)
-    if False:
-        dataset = datamodule._generate_dataset("val")
-        print(len(dataset))
-        dataloader = datamodule._generate_dataloader("val")
-        print(len(dataloader))
-        exit()
-        for i in range(100):
-            print(i)
-            datamodule.train_dataloader()
-        dataset = datamodule._generate_dataset("train")
-        print(dataset[0])
-        from tqdm.auto import tqdm
-        dataloader = datamodule.train_dataloader()
-        print(next(iter(dataloader)).keys())
-        for batch in tqdm(dataloader):
-            batch
-        exit()
-    elif False:
-        model = LBModelModule(cfg)
-        print(model)
-        exit()
     num_train_data = len(datamodule._generate_dataset("train"))
     max_steps = get_num_training_steps(num_train_data, cfg)
     if "num_training_steps" in cfg.scheduler.params:
