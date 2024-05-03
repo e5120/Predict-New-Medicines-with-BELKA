@@ -10,27 +10,27 @@ class CNNModel(BaseModel):
         self.conv_list = nn.Sequential(
             nn.Conv1d(embedding_dim, num_filters, 3, stride=1, padding="valid"),
             nn.BatchNorm1d(num_filters),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(num_filters, 2*num_filters, 3, stride=1, padding="valid"),
             nn.BatchNorm1d(2*num_filters),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(2*num_filters, 3*num_filters, 3, stride=1, padding="valid"),
             nn.BatchNorm1d(3*num_filters),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
         )
         self.global_max_pool = nn.AdaptiveMaxPool1d(1)
         self.fc = nn.Sequential(
             nn.Linear(3*num_filters, 1024),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=0.1),
             nn.Linear(1024, 1024),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=0.1),
             nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=0.1),
             nn.Linear(512, num_labels),
         )
@@ -41,6 +41,10 @@ class CNNModel(BaseModel):
             nn.init.xavier_normal_(x.weight, gain=nn.init.calculate_gain("relu"))
             if x.bias is not None:
                 nn.init.zeros_(x.bias)
+        # elif isinstance(x, nn.Linear):
+        #     nn.init.xavier_uniform_(x.weight)
+        #     if x.bias is not None:
+        #         nn.init.zeros_(x.bias)
 
     def forward(self, batch):
         emb = self.embedding(batch["input_ids"].long())

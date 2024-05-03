@@ -50,9 +50,12 @@ class LBDataModule(L.LightningDataModule):
                 Path(cfg.data_dir, f"processed_val_fold{cfg.fold}.parquet"),
                 columns=columns+["non-share"],
             )
-            non_share_val_df = val_df.filter(pl.col("non-share"))
-            for i in range(1, 4):
-                trn_df = trn_df.filter(~pl.col(f"bb{i}_code").is_in(non_share_val_df[f"bb{i}_code"]))
+            if cfg.leak:
+                trn_df = trn_df.filter(~pl.col("id").is_in(val_df["id"]))
+            else:
+                non_share_val_df = val_df.filter(pl.col("non-share"))
+                for i in range(1, 4):
+                    trn_df = trn_df.filter(~pl.col(f"bb{i}_code").is_in(non_share_val_df[f"bb{i}_code"]))
             self.trn_df = trn_df.sort("id")
             self.val_df = val_df.sort("id")
             trn_stats = self._get_stats(self.trn_df, "train")

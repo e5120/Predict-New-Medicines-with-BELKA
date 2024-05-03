@@ -11,6 +11,7 @@ class CharDataset(LBBaseDataset):
         input_ids = self.data["char_feats"][key]
         data = {
             "input_ids": input_ids,
+            "input_lengths": len(input_ids),
         }
         return data
 

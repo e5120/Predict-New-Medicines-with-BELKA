@@ -1,0 +1,11 @@
+name: "SqueezeformerModel"
+params: {
+  num_embeddings: 37,
+  embedding_dim: 32,
+  padding_idx: 0,
+  squeezeformer_params: {
+    encoder_dim: 128,
+    num_encoder_layers: 12,
+    num_attention_heads: 8,
+  }
+}
