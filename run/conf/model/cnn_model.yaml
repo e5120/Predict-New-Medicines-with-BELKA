@@ -1,7 +1,8 @@
 name: "CNNModel"
 params: {
-  model_name: DeepChem/ChemBERTa-77M-MTR,
+  num_embeddings: 37,
   embedding_dim: 128,
   num_filters: 32,
   seq_len: 142,
+  padding_idx: 0,
 }

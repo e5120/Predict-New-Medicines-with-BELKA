@@ -1,0 +1,4 @@
+name: CharDataset
+features:
+  char_feats: character
+params: {}

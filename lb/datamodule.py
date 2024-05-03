@@ -132,6 +132,8 @@ class LBDataModule(L.LightningDataModule):
                 collate_fn = DataCollatorWithPadding(self.tokenizer)
         elif "graph_feats" in self.feature_types:
             collate_fn = pyg_collate_fn
+        elif "char_feats" in self.feature_types:
+            collate_fn = None
         else:
             raise NotImplementedError
         return DataLoader(

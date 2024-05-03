@@ -1,0 +1,5 @@
+name: CharacterPreprocessor
+prefix: character
+use_cols:
+  - id
+  - molecule_smiles
