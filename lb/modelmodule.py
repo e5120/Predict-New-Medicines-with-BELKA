@@ -79,11 +79,15 @@ class LBModelModule(L.LightningModule):
             optimizer,
             **self.cfg.scheduler.params,
         )
+        if self.cfg.scheduler.name in ["ReduceLROnPlateau"]:
+            interval = "epoch"
+        else:
+            interval = "step"
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step",
+                "interval": interval,
                 "monitor": "val_loss",
             }
         }
