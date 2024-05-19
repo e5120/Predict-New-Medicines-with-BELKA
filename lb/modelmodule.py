@@ -13,9 +13,9 @@ class LBModelModule(L.LightningModule):
         super().__init__()
         self.cfg = cfg
         self.model = getattr(lb.model, cfg.model.name)(**cfg.model.params)
-        self.map = {"val_map": AveragePrecision(task="binary")}
+        self.map = {}
         for protein_name in PROTEIN_NAMES:
-            for suffix in ["non_share", "share"]:
+            for suffix in ["ns", "s"]:
                 self.map[f"{protein_name}_{suffix}"] = AveragePrecision(task="binary")
 
     def forward(self, batch):
@@ -51,18 +51,26 @@ class LBModelModule(L.LightningModule):
         preds = preds.detach()
         labels = labels.detach()
         is_exist = is_exist.detach()
-        self.map["val_map"].update(preds, labels)
         new_preds, new_labels = preds[~is_exist], labels[~is_exist]
         exist_preds, exist_labels = preds[is_exist], labels[is_exist]
         for i, protein_name in enumerate(PROTEIN_NAMES):
-            self.map[f"{protein_name}_non_share"].update(new_preds[:, i], new_labels[:, i])
-            self.map[f"{protein_name}_share"].update(exist_preds[:, i], exist_labels[:, i])
+            self.map[f"{protein_name}_ns"].update(new_preds[:, i], new_labels[:, i])
+            self.map[f"{protein_name}_s"].update(exist_preds[:, i], exist_labels[:, i])
 
     def metrics_compute(self):
-        ret = {}
+        ret = {"val_map": 0.0, "val_map_prv": 0.0}
+        val_pub, val_prv = 0, 0
         for k in self.map:
             ret[k] = self.map[k].compute()
+            val_pub += ret[k] / 6
+            if "_ns" in k:
+                val_prv += 2 * ret[k] / 9
+            else:
+                val_prv += ret[k] / 9
             self.map[k].reset()
+        assert len(ret) == 8, len(ret)
+        ret["val_map"] = val_pub
+        ret["val_map_prv"] = val_prv
         return ret
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
