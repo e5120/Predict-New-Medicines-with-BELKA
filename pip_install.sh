@@ -8,3 +8,4 @@ pip install merlin-dataloader --user
 pip install rdkit --user
 pip install torch_geometric --user
 pip install squeezeformer --user
+pip install wandb --user
