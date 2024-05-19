@@ -1,5 +1,5 @@
 name: GraphDataset
 features:
-  graph_feats: graph
+  graph_feats: light_graph
 params: {
 }

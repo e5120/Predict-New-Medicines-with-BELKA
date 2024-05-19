@@ -22,7 +22,7 @@ exp_name: dummy
 stage: train
 fold: 0
 chunk_size: 5
-leak: True
+leak: False
 batch_size: 256
 seed: 42
 num_workers: 5
