@@ -96,6 +96,6 @@ class LBModelModule(L.LightningModule):
             "lr_scheduler": {
                 "scheduler": scheduler,
                 "interval": interval,
-                "monitor": "val_loss",
+                "monitor": "val_map",
             }
         }
