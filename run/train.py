@@ -20,9 +20,11 @@ def main(cfg):
         cfg.scheduler.params.total_steps = max_steps
     modelmodule = LBModelModule(cfg)
     callbacks = build_callbacks(cfg)
+    name = None if cfg.exp_name == "dummy" else cfg.exp_name
+    logger = WandbLogger(project="lb", name=name) if cfg.logger else None
     trainer = L.Trainer(
         callbacks=callbacks,
-        logger=WandbLogger(project="lb") if cfg.logger else None,
+        logger=logger,
         **cfg.trainer,
     )
     trainer.fit(modelmodule, datamodule)
